@@ -52,6 +52,13 @@ class WFCSolver:
     func solve() -> bool:
         var stack: Array = []
         var steps := 0
+        while steps <= backtrack_limit:
+            var target := _lowest_entropy_cell()
+            if target == null:
+                return true
+            var pos: Vector2i = target
+            var x: int = pos.x
+            var y: int = pos.y
         while true:
             if steps > backtrack_limit:
                 return false
@@ -65,6 +72,7 @@ class WFCSolver:
             if options.size() == 0:
                 if not _rewind(stack):
                     return false
+                steps += 1
                 continue
             var branch := {
                 "snapshot": _snapshot(),
@@ -79,6 +87,10 @@ class WFCSolver:
             if not _propagate(Vector2i(x, y)):
                 if not _rewind(stack):
                     return false
+                steps += 1
+                continue
+            steps += 1
+        return false
 
     func commit(canvas: MJCanvas) -> void:
         for y in height:
@@ -88,6 +100,9 @@ class WFCSolver:
                     continue
                 canvas.set_cell(x, y, tile_set.get_symbol(options[0]))
 
+    func _lowest_entropy_cell() -> Variant:
+        var best_entropy := INF
+        var best: Variant = null
     func _lowest_entropy_cell() -> Vector2i:
         var best_entropy := INF
         var best := null
