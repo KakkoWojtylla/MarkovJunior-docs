@@ -19,6 +19,7 @@ public sealed class ModelBuilder
     private readonly HashSet<char> _transparent = new();
     private readonly Dictionary<char, int> _paletteOverrides = new();
     private readonly ModelExecutionSettingsBuilder _executionBuilder = new();
+    private readonly ResourceStoreBuilder _resourceBuilder = new();
 
     private string _name = "runtime";
     private int _width;
@@ -73,6 +74,64 @@ public sealed class ModelBuilder
     public ModelBuilder WithResourceFolder(string? folder)
     {
         _resourceFolder = folder;
+        return this;
+    }
+
+    public ModelBuilder AddRulePattern(string name, params string[] rows)
+    {
+        if (rows is null) throw new ArgumentNullException(nameof(rows));
+        (char[] data, int width, int height) = Flatten2D(rows);
+        _resourceBuilder.AddPattern(name, data, width, height);
+        return this;
+    }
+
+    public ModelBuilder AddRulePattern(string name, IEnumerable<IReadOnlyList<string>> layers)
+    {
+        if (layers is null) throw new ArgumentNullException(nameof(layers));
+        (char[] data, int width, int height, int depth) = Flatten3D(layers);
+        _resourceBuilder.AddPattern(name, data, width, height, depth);
+        return this;
+    }
+
+    public ModelBuilder AddSample(string name, params string[] rows)
+    {
+        if (rows is null) throw new ArgumentNullException(nameof(rows));
+        (char[] data, int width, int height) = Flatten2D(rows);
+        _resourceBuilder.AddSample(name, data, width, height);
+        return this;
+    }
+
+    public ModelBuilder AddConvChainSample(string name, IEnumerable<string> rows, Func<char, bool>? selector = null)
+    {
+        if (rows is null) throw new ArgumentNullException(nameof(rows));
+        selector ??= DefaultConvChainSelector;
+        (bool[] data, int width, int height) = FlattenBool(rows, selector);
+        _resourceBuilder.AddConvChainSample(name, data, width, height);
+        return this;
+    }
+
+    public ModelBuilder AddXmlResource(string name, string xml)
+    {
+        if (xml is null) throw new ArgumentNullException(nameof(xml));
+        _resourceBuilder.AddXml(name, XDocument.Parse(xml));
+        return this;
+    }
+
+    public ModelBuilder AddXmlResource(string name, XDocument document)
+    {
+        if (document is null) throw new ArgumentNullException(nameof(document));
+        _resourceBuilder.AddXml(name, document);
+        return this;
+    }
+
+    public ModelBuilder AddVoxResource(string name, IEnumerable<IReadOnlyList<string>> layers, Func<char, int> palette)
+    {
+        if (layers is null) throw new ArgumentNullException(nameof(layers));
+        if (palette is null) throw new ArgumentNullException(nameof(palette));
+        (char[] chars, int width, int height, int depth) = Flatten3D(layers);
+        int[] data = new int[chars.Length];
+        for (int i = 0; i < chars.Length; i++) data[i] = palette(chars[i]);
+        _resourceBuilder.AddVox(name, data, width, height, depth);
         return this;
     }
 
@@ -195,7 +254,8 @@ public sealed class ModelBuilder
         var paletteOverrides = _paletteOverrides.Count == 0 ? null : new ReadOnlyDictionary<char, int>(_paletteOverrides);
         XElement rootElement = _root.ToXElement();
 
-        return new ModelDefinition(_name, grid, rootElement, execution, paletteOverrides, _symmetry, _origin);
+        IResourceStore? resources = _resourceBuilder.HasResources ? _resourceBuilder.Build() : null;
+        return new ModelDefinition(_name, grid, rootElement, execution, paletteOverrides, _symmetry, _origin, resources);
     }
 
     private void AddSymbol(char symbol)
@@ -205,4 +265,85 @@ public sealed class ModelBuilder
             _symbols.Add(symbol);
         }
     }
+
+    private static (char[] data, int width, int height) Flatten2D(IEnumerable<string> rows)
+    {
+        List<string> list = rows.Select(r => r ?? throw new ArgumentNullException(nameof(rows), "Row value cannot be null.")).ToList();
+        if (list.Count == 0) throw new InvalidOperationException("At least one row is required.");
+        int width = list[0].Length;
+        if (width == 0) throw new InvalidOperationException("Rows must not be empty.");
+        for (int i = 1; i < list.Count; i++)
+        {
+            if (list[i].Length != width)
+            {
+                throw new InvalidOperationException("All rows must have the same length.");
+            }
+        }
+
+        char[] data = new char[width * list.Count];
+        for (int y = 0; y < list.Count; y++)
+        {
+            string row = list[y];
+            for (int x = 0; x < width; x++)
+            {
+                data[x + y * width] = row[x];
+            }
+        }
+
+        return (data, width, list.Count);
+    }
+
+    private static (bool[] data, int width, int height) FlattenBool(IEnumerable<string> rows, Func<char, bool> selector)
+    {
+        (char[] chars, int width, int height) = Flatten2D(rows);
+        bool[] data = new bool[chars.Length];
+        for (int i = 0; i < chars.Length; i++) data[i] = selector(chars[i]);
+        return (data, width, height);
+    }
+
+    private static (char[] data, int width, int height, int depth) Flatten3D(IEnumerable<IReadOnlyList<string>> layers)
+    {
+        List<IReadOnlyList<string>> list = layers.Select(layer => layer ?? throw new ArgumentNullException(nameof(layers), "Layer cannot be null.")).ToList();
+        if (list.Count == 0) throw new InvalidOperationException("At least one layer is required.");
+        int depth = list.Count;
+        int height = list[0].Count;
+        if (height == 0) throw new InvalidOperationException("Each layer must contain at least one row.");
+        int width = list[0][0].Length;
+        if (width == 0) throw new InvalidOperationException("Rows must not be empty.");
+
+        for (int z = 0; z < depth; z++)
+        {
+            IReadOnlyList<string> layer = list[z];
+            if (layer.Count != height)
+            {
+                throw new InvalidOperationException("All layers must have the same number of rows.");
+            }
+            for (int y = 0; y < height; y++)
+            {
+                string row = layer[y];
+                if (row.Length != width)
+                {
+                    throw new InvalidOperationException("All rows must have the same length.");
+                }
+            }
+        }
+
+        char[] data = new char[width * height * depth];
+        for (int z = 0; z < depth; z++)
+        {
+            IReadOnlyList<string> layer = list[depth - 1 - z];
+            for (int y = 0; y < height; y++)
+            {
+                string row = layer[y];
+                for (int x = 0; x < width; x++)
+                {
+                    data[x + y * width + z * width * height] = row[x];
+                }
+            }
+        }
+
+        return (data, width, height, depth);
+    }
+
+    private static bool DefaultConvChainSelector(char c) => c != '0' && c != '.' && !char.IsWhiteSpace(c);
 }

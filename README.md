@@ -24,6 +24,19 @@ var model = new ModelBuilder()
     .WithName("code-first-demo")
     .WithSize(32, 32)
     .WithAlphabet("BW")
+    .AddRulePattern("line", "BBB", "BWB", "BBB")
+    .AddSample("rooms",
+        "########",
+        "#......#",
+        "#.####.#",
+        "#.#  #.#",
+        "########")
+    .AddConvChainSample("hatch", new[]
+    {
+        "###",
+        "# #",
+        "###"
+    })
     .WithRoot(root)
     .Build();
 
@@ -36,4 +49,4 @@ foreach (var row in result.AsStrings())
 }
 ```
 
-All MarkovJunior nodes and attributes can be expressed via builder calls, and `GenerationRunner` returns the produced frames as in-memory buffers so they can be consumed directly by a game engine.
+All MarkovJunior nodes and attributes can be expressed via builder calls, and `GenerationRunner` returns the produced frames as in-memory buffers so they can be consumed directly by a game engine. Resource-heavy nodes such as `convchain`, `wfc` and tile models can be fed entirely from memory using `AddRulePattern`, `AddSample`, `AddConvChainSample`, `AddVoxResource` and `AddXmlResource`, so no PNG/VOX/XML files are required at runtime.

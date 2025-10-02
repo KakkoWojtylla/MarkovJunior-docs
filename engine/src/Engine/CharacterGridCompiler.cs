@@ -27,7 +27,7 @@ public sealed class CharacterGridCompiler : IGridCompiler<char>
             palette.DefineTransparent(definition.TransparentSymbols);
         }
 
-        Grid grid = new Grid(definition.Width, definition.Height, definition.Depth, palette, definition.ResourceFolder);
+        Grid grid = new Grid(definition.Width, definition.Height, definition.Depth, palette, definition.ResourceFolder, null);
         return new CompiledGrid<char>(grid, palette);
     }
 }

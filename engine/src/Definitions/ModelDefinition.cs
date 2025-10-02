@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using MarkovJunior.Engine.Api;
 
 namespace MarkovJunior.Engine.Definitions;
 
@@ -17,7 +18,8 @@ public class ModelDefinition<TSymbol>
         ModelExecutionSettings execution,
         IReadOnlyDictionary<TSymbol, int>? paletteOverrides = null,
         string? symmetry = null,
-        bool origin = false)
+        bool origin = false,
+        IResourceStore? resources = null)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -26,6 +28,7 @@ public class ModelDefinition<TSymbol>
         PaletteOverrides = paletteOverrides;
         Symmetry = symmetry;
         Origin = origin;
+        Resources = resources;
     }
 
     public string Name { get; }
@@ -41,6 +44,11 @@ public class ModelDefinition<TSymbol>
     public string? Symmetry { get; }
 
     public bool Origin { get; }
+
+    /// <summary>
+    /// Optional in-memory resource store supplying patterns, samples, tilesets and voxels without touching the filesystem.
+    /// </summary>
+    public IResourceStore? Resources { get; }
 }
 
 /// <summary>
@@ -55,8 +63,9 @@ public sealed class ModelDefinition : ModelDefinition<char>
         ModelExecutionSettings execution,
         IReadOnlyDictionary<char, int>? paletteOverrides = null,
         string? symmetry = null,
-        bool origin = false)
-        : base(name, grid, rootNode, execution, paletteOverrides, symmetry, origin)
+        bool origin = false,
+        IResourceStore? resources = null)
+        : base(name, grid, rootNode, execution, paletteOverrides, symmetry, origin, resources)
     {
     }
 }

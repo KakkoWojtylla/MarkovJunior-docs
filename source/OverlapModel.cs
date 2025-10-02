@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using MarkovJunior.Engine.Api;
 
 /// <summary>
 /// A 'wfc' node which uses an overlapping Wave Function Collapse model.
@@ -32,18 +33,46 @@ class OverlapNode : WFCNode
 
         bool periodicInput = xelem.Get("periodicInput", true);
 
-        newgrid = Grid.Load(xelem, grid.MX, grid.MY, grid.MZ);
+        newgrid = Grid.Load(xelem, grid.MX, grid.MY, grid.MZ, grid.resources);
         if (newgrid == null) return false;
         periodic = true;
 
         name = xelem.Get<string>("sample");
-        (int[] bitmap, int SMX, int SMY, _) = Graphics.LoadBitmap($"resources/samples/{name}.png");
-        if (bitmap == null)
+        byte[] sample;
+        int SMX;
+        int SMY;
+        int C;
+        if (grid.resources != null && grid.resources.TryGetSample(name, out SampleResource resource))
         {
-            Interpreter.WriteLine($"couldn't read sample {name}");
-            return false;
+            SMX = resource.Width;
+            SMY = resource.Height;
+            sample = new byte[resource.Data.Length];
+            HashSet<byte> paletteValues = new();
+            for (int i = 0; i < resource.Data.Length; i++)
+            {
+                char symbol = resource.Data[i];
+                if (!newgrid.values.TryGetValue(symbol, out byte value))
+                {
+                    Interpreter.WriteLine($"unknown symbol {symbol} in sample {name}");
+                    return false;
+                }
+                sample[i] = value;
+                paletteValues.Add(value);
+            }
+            C = paletteValues.Count;
         }
-        (byte[] sample, int C) = bitmap.Ords();
+        else
+        {
+            (int[] bitmap, int width, int height, _) = Graphics.LoadBitmap($"resources/samples/{name}.png");
+            if (bitmap == null)
+            {
+                Interpreter.WriteLine($"couldn't read sample {name}");
+                return false;
+            }
+            SMX = width;
+            SMY = height;
+            (sample, C) = bitmap.Ords();
+        }
         if (C > newgrid.C)
         {
             Interpreter.WriteLine($"there were more than {newgrid.C} colors in the sample");
