@@ -4,6 +4,9 @@ using System;
 using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using MarkovJunior.Engine;
+using MarkovJunior.Engine.Definitions;
+using MarkovJunior.Engine.Serialization;
 
 class Grid
 {
@@ -27,10 +30,10 @@ class Grid
 
     /// <summary>The number of distinct colors allowed in the grid.</summary>
     public byte C;
-    
+
     /// <summary>The alphabet used for colors.</summary>
     public char[] characters;
-    
+
     /// <summary>Maps each alphabet symbol to its color, i.e. its index in <see cref="Grid.characters">characters</see>.</summary>
     public Dictionary<char, byte> values;
 
@@ -44,6 +47,8 @@ class Grid
     /// <seealso cref="Rule.Load(XElement, Grid, Grid)"/>
     public string folder;
 
+    readonly CharacterSymbolTable palette;
+
     /// <summary>A bitmask of which colors should be rendered transparently.</summary>
     /// <remarks>Not currently used.</remarks>
     int transparent;
@@ -51,6 +56,25 @@ class Grid
     /// <summary>A buffer for a temporary copy of the <c>state</c> array.</summary>
     /// <remarks>Not currently used.</remarks>
     byte[] statebuffer;
+
+    public Grid(int MX, int MY, int MZ, CharacterSymbolTable palette, string? folder)
+    {
+        this.MX = MX;
+        this.MY = MY;
+        this.MZ = MZ;
+        this.palette = palette ?? throw new ArgumentNullException(nameof(palette));
+        C = (byte)palette.Cardinality;
+        characters = palette.Symbols.ToArray();
+        values = new Dictionary<char, byte>(palette.Indices);
+        waves = new Dictionary<char, int>(palette.Waves);
+        waves['*'] = palette.AllMask;
+        transparent = palette.TransparentMask;
+        this.folder = folder;
+
+        state = new byte[MX * MY * MZ];
+        statebuffer = new byte[MX * MY * MZ];
+        mask = new bool[MX * MY * MZ];
+    }
 
     /// <summary>
     /// Creates a new grid, whose parameters are loaded from an XML element.
@@ -63,62 +87,30 @@ class Grid
     /// <param name="MZ"><inheritdoc cref="Grid.MZ" path="/summary"/></param>
     public static Grid Load(XElement xelem, int MX, int MY, int MZ)
     {
-        Grid g = new();
-        g.MX = MX;
-        g.MY = MY;
-        g.MZ = MZ;
-        string valueString = xelem.Get<string>("values", null)?.Replace(" ", "");
-        if (valueString == null)
+        try
         {
-            Interpreter.WriteLine("no values specified");
+            GridDefinition<char> definition = XmlGridDefinitionLoader.FromElement(xelem, MX, MY, MZ);
+            CharacterSymbolTable palette = new CharacterSymbolTable(definition.Symbols);
+            if (definition.Unions != null)
+            {
+                foreach (var union in definition.Unions)
+                {
+                    palette.DefineUnion(union.Key, union.Value);
+                }
+            }
+
+            if (definition.TransparentSymbols != null)
+            {
+                palette.DefineTransparent(definition.TransparentSymbols);
+            }
+
+            return new Grid(MX, MY, MZ, palette, definition.ResourceFolder);
+        }
+        catch (Exception e)
+        {
+            Interpreter.WriteLine(e.Message);
             return null;
         }
-
-        g.C = (byte)valueString.Length;
-        g.values = new Dictionary<char, byte>();
-        g.waves = new Dictionary<char, int>();
-        g.characters = new char[g.C];
-        for (byte i = 0; i < g.C; i++)
-        {
-            char symbol = valueString[i];
-            if (g.values.ContainsKey(symbol))
-            {
-                Interpreter.WriteLine($"repeating value {symbol} at line {xelem.LineNumber()}");
-                return null;
-            }
-            else
-            {
-                g.characters[i] = symbol;
-                g.values.Add(symbol, i);
-                g.waves.Add(symbol, 1 << i);
-            }
-        }
-
-        string transparentString = xelem.Get<string>("transparent", null);
-        if (transparentString != null) g.transparent = g.Wave(transparentString);
-
-        var xunions = xelem.MyDescendants("markov", "sequence", "union").Where(x => x.Name == "union");
-        g.waves.Add('*', (1 << g.C) - 1);
-        foreach (XElement xunion in xunions)
-        {
-            char symbol = xunion.Get<char>("symbol");
-            if (g.waves.ContainsKey(symbol))
-            {
-                Interpreter.WriteLine($"repeating union type {symbol} at line {xunion.LineNumber()}");
-                return null;
-            }
-            else
-            {
-                int w = g.Wave(xunion.Get<string>("values"));
-                g.waves.Add(symbol, w);
-            }
-        }
-
-        g.state = new byte[MX * MY * MZ];
-        g.statebuffer = new byte[MX * MY * MZ];
-        g.mask = new bool[MX * MY * MZ];
-        g.folder = xelem.Get<string>("folder", null);
-        return g;
     }
 
     /// <summary>
@@ -133,12 +125,7 @@ class Grid
     /// <summary>
     /// Parses a string of alphabet symbols as a bitmask of colors.
     /// </summary>
-    public int Wave(string values)
-    {
-        int sum = 0;
-        for (int k = 0; k < values.Length; k++) sum += 1 << this.values[values[k]];
-        return sum;
-    }
+    public int Wave(string values) => palette.GetMask(values);
 
     /*static readonly int[] DX = { 1, 0, -1, 0, 0, 0 };
     static readonly int[] DY = { 0, 1, 0, -1, 0, 0 };
