@@ -7,9 +7,17 @@ namespace MarkovJunior.Engine.Definitions;
 /// <summary>
 /// Represents a fully parsed MarkovJunior model that can be compiled and executed by the engine.
 /// </summary>
-public sealed class ModelDefinition
+/// <typeparam name="TSymbol">Symbol type used by the model's grid definition.</typeparam>
+public class ModelDefinition<TSymbol>
 {
-    public ModelDefinition(string name, GridDefinition<char> grid, XElement rootNode, ModelExecutionSettings execution, IReadOnlyDictionary<char, int>? paletteOverrides = null, string? symmetry = null, bool origin = false)
+    public ModelDefinition(
+        string name,
+        GridDefinition<TSymbol> grid,
+        XElement rootNode,
+        ModelExecutionSettings execution,
+        IReadOnlyDictionary<TSymbol, int>? paletteOverrides = null,
+        string? symmetry = null,
+        bool origin = false)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -22,15 +30,33 @@ public sealed class ModelDefinition
 
     public string Name { get; }
 
-    public GridDefinition<char> Grid { get; }
+    public GridDefinition<TSymbol> Grid { get; }
 
     public XElement RootNode { get; }
 
     public ModelExecutionSettings Execution { get; }
 
-    public IReadOnlyDictionary<char, int>? PaletteOverrides { get; }
+    public IReadOnlyDictionary<TSymbol, int>? PaletteOverrides { get; }
 
     public string? Symmetry { get; }
 
     public bool Origin { get; }
+}
+
+/// <summary>
+/// Convenience alias for character-based models that mirror the legacy XML workflow.
+/// </summary>
+public sealed class ModelDefinition : ModelDefinition<char>
+{
+    public ModelDefinition(
+        string name,
+        GridDefinition<char> grid,
+        XElement rootNode,
+        ModelExecutionSettings execution,
+        IReadOnlyDictionary<char, int>? paletteOverrides = null,
+        string? symmetry = null,
+        bool origin = false)
+        : base(name, grid, rootNode, execution, paletteOverrides, symmetry, origin)
+    {
+    }
 }

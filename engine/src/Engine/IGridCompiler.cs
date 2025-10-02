@@ -5,7 +5,8 @@ namespace MarkovJunior.Engine;
 /// <summary>
 /// Builds runtime grids from their declarative definitions.
 /// </summary>
-public interface IGridCompiler
+/// <typeparam name="TSymbol">Symbol type used by the grid definition.</typeparam>
+public interface IGridCompiler<TSymbol>
 {
-    Grid CreateGrid(GridDefinition<char> definition);
+    CompiledGrid<TSymbol> CreateGrid(GridDefinition<TSymbol> definition);
 }

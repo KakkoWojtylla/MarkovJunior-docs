@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MarkovJunior.Engine;
 
@@ -38,4 +39,30 @@ public readonly struct GenerationFrame
 
     /// <summary>Cells that changed since the previous frame.</summary>
     public GridChange[] Changes { get; }
+
+    /// <summary>
+    /// Converts the frame's legend to another symbol type.
+    /// </summary>
+    public TypedGenerationFrame<TSymbol> ToTyped<TSymbol>(Func<char, TSymbol> selector)
+    {
+        if (selector is null) throw new ArgumentNullException(nameof(selector));
+
+        TSymbol[] typedLegend = new TSymbol[Legend.Length];
+        for (int i = 0; i < Legend.Length; i++)
+        {
+            typedLegend[i] = selector(Legend[i]);
+        }
+
+        return new TypedGenerationFrame<TSymbol>(State, typedLegend, Width, Height, Depth, Step, IsFinal, Changes);
+    }
+
+    /// <summary>
+    /// Converts the legend using a lookup table.
+    /// </summary>
+    public TypedGenerationFrame<TSymbol> ToTyped<TSymbol>(IReadOnlyDictionary<char, TSymbol> legendMap)
+    {
+        if (legendMap is null) throw new ArgumentNullException(nameof(legendMap));
+
+        return ToTyped(symbol => legendMap[symbol]);
+    }
 }

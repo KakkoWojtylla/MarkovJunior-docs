@@ -7,9 +7,9 @@ namespace MarkovJunior.Engine;
 /// Compiles <see cref="GridDefinition{Char}"/> instances into runtime grids
 /// backed by a <see cref="CharacterSymbolTable"/>.
 /// </summary>
-public sealed class CharacterGridCompiler : IGridCompiler
+public sealed class CharacterGridCompiler : IGridCompiler<char>
 {
-    public Grid CreateGrid(GridDefinition<char> definition)
+    public CompiledGrid<char> CreateGrid(GridDefinition<char> definition)
     {
         if (definition is null) throw new ArgumentNullException(nameof(definition));
 
@@ -28,6 +28,6 @@ public sealed class CharacterGridCompiler : IGridCompiler
         }
 
         Grid grid = new Grid(definition.Width, definition.Height, definition.Depth, palette, definition.ResourceFolder);
-        return grid;
+        return new CompiledGrid<char>(grid, palette);
     }
 }

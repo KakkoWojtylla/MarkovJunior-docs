@@ -132,6 +132,24 @@ public sealed class GenerationSession : IDisposable
     }
 
     /// <summary>
+    /// Attempts to advance the session by a single frame while projecting the legend
+    /// through the provided selector.
+    /// </summary>
+    public bool TryStep<TSymbol>(Func<char, TSymbol> legendSelector, out TypedGenerationFrame<TSymbol> frame)
+    {
+        if (legendSelector is null) throw new ArgumentNullException(nameof(legendSelector));
+
+        if (TryStep(out GenerationFrame raw))
+        {
+            frame = raw.ToTyped(legendSelector);
+            return true;
+        }
+
+        frame = default;
+        return false;
+    }
+
+    /// <summary>
     /// Drives the session until no further frames are available.
     /// </summary>
     public void RunUntilComplete(Action<GenerationFrame>? onFrame = null, CancellationToken cancellationToken = default)
@@ -151,6 +169,18 @@ public sealed class GenerationSession : IDisposable
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Drives the session until no further frames are available, projecting each
+    /// frame's legend through the supplied selector.
+    /// </summary>
+    public void RunUntilComplete<TSymbol>(Func<char, TSymbol> legendSelector, Action<TypedGenerationFrame<TSymbol>> onFrame, CancellationToken cancellationToken = default)
+    {
+        if (legendSelector is null) throw new ArgumentNullException(nameof(legendSelector));
+        if (onFrame is null) throw new ArgumentNullException(nameof(onFrame));
+
+        RunUntilComplete(frame => onFrame(frame.ToTyped(legendSelector)), cancellationToken);
     }
 
     /// <summary>

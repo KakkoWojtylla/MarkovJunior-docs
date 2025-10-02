@@ -9,9 +9,9 @@ namespace MarkovJunior.Engine;
 /// </summary>
 public sealed class DefinitionInterpreterFactory : IInterpreterFactory
 {
-    private readonly IGridCompiler _gridCompiler;
+    private readonly IGridCompiler<char> _gridCompiler;
 
-    public DefinitionInterpreterFactory(IGridCompiler gridCompiler)
+    public DefinitionInterpreterFactory(IGridCompiler<char> gridCompiler)
     {
         _gridCompiler = gridCompiler;
     }
@@ -20,10 +20,10 @@ public sealed class DefinitionInterpreterFactory : IInterpreterFactory
     {
         if (definition is null) throw new ArgumentNullException(nameof(definition));
 
-        Grid grid = _gridCompiler.CreateGrid(definition.Grid);
-        if (grid == null) throw new InvalidOperationException("Failed to create grid from definition.");
+        CompiledGrid<char> compiled = _gridCompiler.CreateGrid(definition.Grid);
+        if (compiled is null) throw new InvalidOperationException("Failed to create grid from definition.");
 
-        Interpreter interpreter = Interpreter.FromDefinition(definition, grid);
+        Interpreter interpreter = Interpreter.FromDefinition(definition, compiled.Runtime);
         return interpreter;
     }
 }

@@ -13,6 +13,10 @@ public interface ISymbolTable<TSymbol>
 
     IReadOnlyList<TSymbol> Symbols { get; }
 
+    IReadOnlyDictionary<TSymbol, byte> Indices { get; }
+
+    IReadOnlyDictionary<TSymbol, int> Waves { get; }
+
     bool TryGetIndex(TSymbol symbol, out byte index);
 
     byte GetIndex(TSymbol symbol);
@@ -22,4 +26,6 @@ public interface ISymbolTable<TSymbol>
     int GetMask(IEnumerable<TSymbol> symbols);
 
     int AllMask { get; }
+
+    int TransparentMask { get; }
 }
