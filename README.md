@@ -49,4 +49,4 @@ foreach (var row in result.AsStrings())
 }
 ```
 
-All MarkovJunior nodes and attributes can be expressed via builder calls, and `GenerationRunner` returns the produced frames as in-memory buffers so they can be consumed directly by a game engine. Resource-heavy nodes such as `convchain`, `wfc` and tile models can be fed entirely from memory using `AddRulePattern`, `AddSample`, `AddConvChainSample`, `AddVoxResource` and `AddXmlResource`, so no PNG/VOX/XML files are required at runtime.
+All MarkovJunior nodes and attributes can be expressed via builder calls, and `GenerationRunner` returns the produced frames as in-memory buffers so they can be consumed directly by a game engine. When you need raw characters rather than formatted rows, use `GenerationResult.AsCharArray()` for a flattened buffer, `AsCharGrid2D()` for a `[y, x]` matrix, or `AsCharGrid3D()` for volumetric outputs. Resource-heavy nodes such as `convchain`, `wfc` and tile models can be fed entirely from memory using `AddRulePattern`, `AddSample`, `AddConvChainSample`, `AddVoxResource` and `AddXmlResource`, so no PNG/VOX/XML files are required at runtime.

@@ -33,6 +33,21 @@ public sealed class GenerationResult
     public IReadOnlyList<string> AsStrings() => FinalFrame.AsStrings();
 
     /// <summary>
+    /// Returns the final frame as a flattened char array in XYZ order.
+    /// </summary>
+    public char[] AsCharArray() => FinalFrame.ToCharArray();
+
+    /// <summary>
+    /// Returns the final frame as a 2D char grid [y, x].
+    /// </summary>
+    public char[,] AsCharGrid2D() => FinalFrame.ToCharGrid2D();
+
+    /// <summary>
+    /// Returns the final frame as a 3D char grid [z, y, x].
+    /// </summary>
+    public char[,,] AsCharGrid3D() => FinalFrame.ToCharGrid3D();
+
+    /// <summary>
     /// Projects the final frame legend into another symbol domain.
     /// </summary>
     public GenerationResult<TSymbol> ToTyped<TSymbol>(Func<char, TSymbol> selector)
@@ -68,4 +83,19 @@ public sealed class GenerationResult<TSymbol>
     {
         return FinalFrame.AsRows();
     }
+
+    /// <summary>
+    /// Returns the final frame as a flattened array in XYZ order.
+    /// </summary>
+    public TSymbol[] AsArray() => FinalFrame.ToArray();
+
+    /// <summary>
+    /// Returns the final frame as a 2D grid [y, x].
+    /// </summary>
+    public TSymbol[,] AsGrid2D() => FinalFrame.ToGrid2D();
+
+    /// <summary>
+    /// Returns the final frame as a 3D grid [z, y, x].
+    /// </summary>
+    public TSymbol[,,] AsGrid3D() => FinalFrame.ToGrid3D();
 }

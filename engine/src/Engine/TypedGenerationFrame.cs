@@ -65,4 +65,68 @@ public readonly struct TypedGenerationFrame<TSymbol>
 
         return Array.AsReadOnly(rows);
     }
+
+    /// <summary>
+    /// Materialises the frame as a flattened array in XYZ order.
+    /// </summary>
+    public TSymbol[] ToArray()
+    {
+        var buffer = new TSymbol[State.Length];
+        for (int i = 0; i < State.Length; i++)
+        {
+            buffer[i] = Legend[State[i]];
+        }
+
+        return buffer;
+    }
+
+    /// <summary>
+    /// Materialises the frame as a 2D grid [y, x].
+    /// </summary>
+    public TSymbol[,] ToGrid2D()
+    {
+        if (Depth != 1)
+        {
+            throw new InvalidOperationException("ToGrid2D is only supported for 2D grids.");
+        }
+
+        var grid = new TSymbol[Height, Width];
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                int index = x + y * Width;
+                grid[y, x] = Legend[State[index]];
+            }
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Materialises the frame as a 3D grid [z, y, x].
+    /// </summary>
+    public TSymbol[,,] ToGrid3D()
+    {
+        if (Depth <= 1)
+        {
+            throw new InvalidOperationException("ToGrid3D requires a depth greater than 1.");
+        }
+
+        var grid = new TSymbol[Depth, Height, Width];
+        int slice = Width * Height;
+        for (int z = 0; z < Depth; z++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    int index = x + y * Width + z * slice;
+                    grid[z, y, x] = Legend[State[index]];
+                }
+            }
+        }
+
+        return grid;
+    }
 }
