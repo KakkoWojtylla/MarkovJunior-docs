@@ -9,12 +9,16 @@ The `MarkovJunior.Engine.Api` namespace exposes builders that let you describe m
 using MarkovJunior.Engine.Api;
 
 var root = Nodes.Sequence(
-    Nodes.One().Attribute("values", "BW").Attribute("in", "B").Attribute("out", "W"),
-    Nodes.Markov(
-        Nodes.All().Attribute("in", "W").Attribute("out", "BW"),
-        Nodes.Path().Attribute("from", "B").Attribute("to", "W").Attribute("on", "B").Attribute("color", "W")
-    )
-);
+    children: new[]
+    {
+        Nodes.One(values: "BW", @in: "B", @out: "W"),
+        Nodes.Markov(
+            children: new[]
+            {
+                Nodes.All(@in: "W", @out: "BW"),
+                Nodes.Path(from: "B", to: "W", on: "B", color: "W")
+            })
+    });
 
 var model = new ModelBuilder()
     .WithName("code-first-demo")
