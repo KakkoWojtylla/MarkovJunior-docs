@@ -3,6 +3,8 @@
 using System;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using MarkovJunior.Engine;
+using MarkovJunior.Engine.Definitions;
 
 /// <summary>
 /// Runs a MarkovJunior program, yielding either the final grid state, or the
@@ -78,7 +80,7 @@ class Interpreter
         ip.grid = Grid.Load(xelem, MX, MY, MZ);
         if (ip.grid == null)
         {
-            Console.WriteLine("failed to load grid");
+            InterpreterLogging.Logger.WriteLine("failed to load grid");
             return null;
         }
         ip.startgrid = ip.grid;
@@ -87,7 +89,7 @@ class Interpreter
         bool[] symmetry = SymmetryHelper.GetSymmetry(ip.grid.MZ == 1, symmetryString, AH.Array1D(ip.grid.MZ == 1 ? 8 : 48, true));
         if (symmetry == null)
         {
-            WriteLine($"unknown symmetry {symmetryString} at line {xelem.LineNumber()}");
+            InterpreterLogging.Logger.WriteLine($"unknown symmetry {symmetryString} at line {xelem.LineNumber()}");
             return null;
         }
 
@@ -95,6 +97,35 @@ class Interpreter
         if (topnode == null) return null;
         ip.root = topnode is Branch ? topnode as Branch : new MarkovNode(topnode, ip);
 
+        ip.changes = new List<(int, int, int)>();
+        ip.first = new List<int>();
+        return ip;
+    }
+
+    public static Interpreter FromDefinition(ModelDefinition definition, Grid grid)
+    {
+        if (definition == null) throw new ArgumentNullException(nameof(definition));
+        if (grid == null) throw new ArgumentNullException(nameof(grid));
+
+        Interpreter ip = new();
+        ip.origin = definition.Origin;
+        ip.grid = grid;
+        ip.startgrid = grid;
+
+        string symmetryString = definition.Symmetry;
+        bool[] symmetry = SymmetryHelper.GetSymmetry(grid.MZ == 1, symmetryString, AH.Array1D(grid.MZ == 1 ? 8 : 48, true));
+        if (symmetry == null)
+        {
+            throw new InvalidOperationException($"unknown symmetry {symmetryString}");
+        }
+
+        Node topnode = Node.Factory(definition.RootNode, symmetry, ip, grid);
+        if (topnode == null)
+        {
+            throw new InvalidOperationException("Failed to construct node graph from definition.");
+        }
+
+        ip.root = topnode is Branch branch ? branch : new MarkovNode(topnode, ip);
         ip.changes = new List<(int, int, int)>();
         ip.first = new List<int>();
         return ip;
@@ -127,7 +158,7 @@ class Interpreter
         {
             if (gif)
             {
-                Console.WriteLine($"[{counter}]");
+                InterpreterLogging.Logger.WriteLine($"[{counter}]");
                 yield return (grid.state, grid.characters, grid.MX, grid.MY, grid.MZ);
             }
 
@@ -140,8 +171,8 @@ class Interpreter
     }
 
     /// <summary>Writes a string to the log, with a newline.</summary>
-    public static void WriteLine(string s) => Console.WriteLine(s);
-    
+    public static void WriteLine(string s) => InterpreterLogging.Logger.WriteLine(s);
+
     /// <summary>Writes a string to the log, without a newline.</summary>
-    public static void Write(string s) => Console.Write(s);
+    public static void Write(string s) => InterpreterLogging.Logger.Write(s);
 }
