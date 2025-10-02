@@ -94,6 +94,7 @@ public sealed class XmlModelCatalog : IModelCatalog
             root.Get<string>("symmetry", null),
             root.Get("origin", false),
             resources: null);
+            root.Get("origin", false));
 
         return definition;
     }

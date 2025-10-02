@@ -12,6 +12,10 @@ static func create_tileset(symbols: PackedStringArray = PackedStringArray()) -> 
 
 static func rule_chain(stages: Array = []) -> MJRuleChain:
     var chain := MJRuleChain.new()
+static func rule_chain(stages: Array = null) -> MJRuleChain:
+    var chain := MJRuleChain.new()
+    if stages == null:
+        return chain
     for stage in stages:
         chain.add_stage(stage)
     return chain

@@ -28,6 +28,7 @@ public sealed class CharacterGridCompiler : IGridCompiler<char>
         }
 
         Grid grid = new Grid(definition.Width, definition.Height, definition.Depth, palette, definition.ResourceFolder, null);
+        Grid grid = new Grid(definition.Width, definition.Height, definition.Depth, palette, definition.ResourceFolder);
         return new CompiledGrid<char>(grid, palette);
     }
 }

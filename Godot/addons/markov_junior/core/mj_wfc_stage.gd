@@ -59,6 +59,15 @@ class WFCSolver:
             var pos: Vector2i = target
             var x: int = pos.x
             var y: int = pos.y
+        while true:
+            if steps > backtrack_limit:
+                return false
+            steps += 1
+            var target := _lowest_entropy_cell()
+            if target == null:
+                return true
+            var x: int = target.x
+            var y: int = target.y
             var options: PackedInt32Array = possibilities[y][x]
             if options.size() == 0:
                 if not _rewind(stack):
@@ -94,6 +103,9 @@ class WFCSolver:
     func _lowest_entropy_cell() -> Variant:
         var best_entropy := INF
         var best: Variant = null
+    func _lowest_entropy_cell() -> Vector2i:
+        var best_entropy := INF
+        var best := null
         for y in height:
             for x in width:
                 var options: PackedInt32Array = possibilities[y][x]
