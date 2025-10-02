@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using MarkovJunior.Engine.Api;
 
 /// <summary>
 /// A 'wfc' node which uses a tile-based Wave Function Collapse model.
@@ -35,11 +36,18 @@ class TileNode : WFCNode
 
         XDocument xdoc;
         string filepath = $"resources/tilesets/{name}.xml";
-        try { xdoc = XDocument.Load(filepath, LoadOptions.SetLineInfo); }
-        catch (Exception)
+        if (grid.resources != null && grid.resources.TryGetXml(name, out XDocument document))
         {
-            Interpreter.WriteLine($"couldn't open tileset {filepath}");
-            return false;
+            xdoc = document;
+        }
+        else
+        {
+            try { xdoc = XDocument.Load(filepath, LoadOptions.SetLineInfo); }
+            catch (Exception)
+            {
+                Interpreter.WriteLine($"couldn't open tileset {filepath}");
+                return false;
+            }
         }
         XElement xroot = xdoc.Root;
 
@@ -48,11 +56,21 @@ class TileNode : WFCNode
         string firstFileName = $"{tilesname}/{xfirsttile.Get<string>("name")}.vox";
         int[] firstData;
         int SY;
-        (firstData, S, SY, SZ) = VoxHelper.LoadVox($"resources/tilesets/{firstFileName}");
-        if (firstData == null)
+        if (grid.resources != null && (grid.resources.TryGetVox(firstFileName, out VoxResource vox) || grid.resources.TryGetVox($"resources/tilesets/{firstFileName}", out vox)))
         {
-            Interpreter.WriteLine($"couldn't read {firstFileName}");
-            return false;
+            firstData = (int[])vox.Data.Clone();
+            S = vox.Width;
+            SY = vox.Height;
+            SZ = vox.Depth;
+        }
+        else
+        {
+            (firstData, S, SY, SZ) = VoxHelper.LoadVox($"resources/tilesets/{firstFileName}");
+            if (firstData == null)
+            {
+                Interpreter.WriteLine($"couldn't read {firstFileName}");
+                return false;
+            }
         }
         if (S != SY)
         {
@@ -65,7 +83,7 @@ class TileNode : WFCNode
             return false;
         }
 
-        newgrid = Grid.Load(xelem, (S - overlap) * grid.MX + overlap, (S - overlap) * grid.MY + overlap, (SZ - overlapz) * grid.MZ + overlapz);
+        newgrid = Grid.Load(xelem, (S - overlap) * grid.MX + overlap, (S - overlap) * grid.MY + overlap, (SZ - overlapz) * grid.MZ + overlapz, grid.resources);
         if (newgrid == null) return false;
 
         tiledata = new List<byte[]>();
@@ -91,11 +109,19 @@ class TileNode : WFCNode
             double weight = xtile.Get("weight", 1.0);
 
             string filename = $"resources/tilesets/{tilesname}/{tilename}.vox";
-            int[] vox = VoxHelper.LoadVox(filename).Item1;
-            if (vox == null)
+            int[] vox;
+            if (grid.resources != null && (grid.resources.TryGetVox($"{tilesname}/{tilename}.vox", out VoxResource tileVox) || grid.resources.TryGetVox(filename, out tileVox)))
             {
-                Interpreter.WriteLine($"couldn't read tile {filename}");
-                return false;
+                vox = (int[])tileVox.Data.Clone();
+            }
+            else
+            {
+                vox = VoxHelper.LoadVox(filename).Item1;
+                if (vox == null)
+                {
+                    Interpreter.WriteLine($"couldn't read tile {filename}");
+                    return false;
+                }
             }
             (byte[] flatTile, int C) = vox.Ords(uniques);
             if (C > newgrid.C)

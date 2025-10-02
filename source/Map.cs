@@ -75,7 +75,7 @@ class MapNode : Branch
         (NY, DY) = readScale(scales[1]);
         (NZ, DZ) = readScale(scales[2]);
 
-        newgrid = Grid.Load(xelem, grid.MX * NX / DX, grid.MY * NY / DY, grid.MZ * NZ / DZ);
+        newgrid = Grid.Load(xelem, grid.MX * NX / DX, grid.MY * NY / DY, grid.MZ * NZ / DZ, grid.resources);
         if (newgrid == null) return false;
 
         // base.Load expects `parentSymmetry`, not `symmetry`
