@@ -49,6 +49,32 @@ public sealed class GenerationRunner
     }
 
     /// <summary>
+    /// Runs the model and returns the final frame as a flattened character array in XYZ order.
+    /// </summary>
+    public char[] RunToCharArray(ModelDefinition model, GenerationRunnerOptions? options = null)
+    {
+        return Run(model, options).AsCharArray();
+    }
+
+    /// <summary>
+    /// Runs the model and returns the final frame as a 2D character grid [y, x].
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the model describes a 3D grid.</exception>
+    public char[,] RunToCharGrid2D(ModelDefinition model, GenerationRunnerOptions? options = null)
+    {
+        return Run(model, options).AsCharGrid2D();
+    }
+
+    /// <summary>
+    /// Runs the model and returns the final frame as a 3D character grid [z, y, x].
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the model describes a 2D grid.</exception>
+    public char[,,] RunToCharGrid3D(ModelDefinition model, GenerationRunnerOptions? options = null)
+    {
+        return Run(model, options).AsCharGrid3D();
+    }
+
+    /// <summary>
     /// Runs the model and projects each frame through the supplied selector.
     /// </summary>
     public GenerationResult<TSymbol> Run<TSymbol>(ModelDefinition model, Func<char, TSymbol> selector, GenerationRunnerOptions? options = null)
@@ -77,6 +103,28 @@ public sealed class GenerationRunner
         }
 
         return new GenerationResult<TSymbol>(Array.AsReadOnly(frames.ToArray()));
+    }
+
+    /// <summary>
+    /// Runs the model and returns the final frame projected to a 2D grid using the supplied selector.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the model describes a 3D grid.</exception>
+    public TSymbol[,] RunToGrid2D<TSymbol>(ModelDefinition model, Func<char, TSymbol> selector, GenerationRunnerOptions? options = null)
+    {
+        if (selector is null) throw new ArgumentNullException(nameof(selector));
+
+        return Run(model, selector, options).AsGrid2D();
+    }
+
+    /// <summary>
+    /// Runs the model and returns the final frame projected to a 3D grid using the supplied selector.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the model describes a 2D grid.</exception>
+    public TSymbol[,,] RunToGrid3D<TSymbol>(ModelDefinition model, Func<char, TSymbol> selector, GenerationRunnerOptions? options = null)
+    {
+        if (selector is null) throw new ArgumentNullException(nameof(selector));
+
+        return Run(model, selector, options).AsGrid3D();
     }
 
     /// <summary>

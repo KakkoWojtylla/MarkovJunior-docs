@@ -41,12 +41,22 @@ var model = new ModelBuilder()
     .Build();
 
 var runner = new GenerationRunner();
-var result = runner.Run(model, new GenerationRunnerOptions { Seed = 1337 });
+var options = new GenerationRunnerOptions { Seed = 1337 };
+var result = runner.Run(model, options);
+
+// Access the final frame as raw buffers without additional conversions:
+char[] flat = result.AsCharArray();           // XYZ order
+char[,] grid2D = result.AsCharGrid2D();       // [y, x]
 
 foreach (var row in result.AsStrings())
 {
     Console.WriteLine(row);
 }
+
+// ...or run directly to raw buffers when you do not need the intermediate frames:
+char[] singleRunFlat = runner.RunToCharArray(model, options);
+char[,] singleRunGrid2D = runner.RunToCharGrid2D(model, options);
+// 3D volumes are supported via RunToCharGrid3D
 ```
 
 All MarkovJunior nodes and attributes can be expressed via builder calls, and `GenerationRunner` returns the produced frames as in-memory buffers so they can be consumed directly by a game engine. When you need raw characters rather than formatted rows, use `GenerationResult.AsCharArray()` for a flattened buffer, `AsCharGrid2D()` for a `[y, x]` matrix, or `AsCharGrid3D()` for volumetric outputs. Resource-heavy nodes such as `convchain`, `wfc` and tile models can be fed entirely from memory using `AddRulePattern`, `AddSample`, `AddConvChainSample`, `AddVoxResource` and `AddXmlResource`, so no PNG/VOX/XML files are required at runtime.
