@@ -3,6 +3,7 @@
 using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using MarkovJunior.Engine.Api;
 
 /// <summary>
 /// Represents a single rewrite rule, with an input pattern and an output
@@ -196,13 +197,27 @@ class Rule
         else return SymmetryHelper.CubeSymmetries(this, r => r.ZRotated(), r => r.YRotated(), r => r.Reflected(), Same, symmetry);
     }
 
-    public static (char[] data, int MX, int MY, int MZ) LoadResource(string filename, string legend, bool d2)
+    public static (char[] data, int MX, int MY, int MZ) LoadResource(Grid grid, string key, string filename, string legend, bool d2)
     {
         if (legend == null)
         {
             Interpreter.WriteLine($"no legend for {filename}");
             return (null, -1, -1, -1);
         }
+
+        if (grid.resources != null)
+        {
+            if (!string.IsNullOrWhiteSpace(key) && grid.resources.TryGetPattern(key, out PatternResource pattern))
+            {
+                return (pattern.Data, pattern.Width, pattern.Height, pattern.Depth);
+            }
+
+            if (grid.resources.TryGetPattern(filename, out pattern))
+            {
+                return (pattern.Data, pattern.Width, pattern.Height, pattern.Depth);
+            }
+        }
+
         (int[] data, int MX, int MY, int MZ) = d2 ? Graphics.LoadBitmap(filename) : VoxHelper.LoadVox(filename);
         if (data == null)
         {
@@ -296,14 +311,14 @@ class Rule
                 return null;
             }
 
-            (inRect, IMX, IMY, IMZ) = inString != null ? Parse(inString) : LoadResource(filepath(finString), legend, gin.MZ == 1);
+            (inRect, IMX, IMY, IMZ) = inString != null ? Parse(inString) : LoadResource(gin, finString, filepath(finString), legend, gin.MZ == 1);
             if (inRect == null)
             {
                 Interpreter.WriteLine($" in input at line {lineNumber}");
                 return null;
             }
 
-            (outRect, OMX, OMY, OMZ) = outString != null ? Parse(outString) : LoadResource(filepath(foutString), legend, gin.MZ == 1);
+            (outRect, OMX, OMY, OMZ) = outString != null ? Parse(outString) : LoadResource(gout, foutString, filepath(foutString), legend, gin.MZ == 1);
             if (outRect == null)
             {
                 Interpreter.WriteLine($" in output at line {lineNumber}");
@@ -323,7 +338,7 @@ class Rule
                 Interpreter.WriteLine($"rule at line {lineNumber} already contains a file attribute");
                 return null;
             }
-            (char[] rect, int FX, int FY, int FZ) = LoadResource(filepath(fileString), legend, gin.MZ == 1);
+            (char[] rect, int FX, int FY, int FZ) = LoadResource(gout, fileString, filepath(fileString), legend, gin.MZ == 1);
             if (rect == null)
             {
                 Interpreter.WriteLine($" in a rule at line {lineNumber}");

@@ -92,6 +92,8 @@ public sealed class XmlModelCatalog : IModelCatalog
             execution,
             paletteOverrides,
             root.Get<string>("symmetry", null),
+            root.Get("origin", false),
+            resources: null);
             root.Get("origin", false));
 
         return definition;

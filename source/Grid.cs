@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
 using MarkovJunior.Engine;
+using MarkovJunior.Engine.Api;
 using MarkovJunior.Engine.Definitions;
 using MarkovJunior.Engine.Serialization;
 
@@ -47,6 +48,9 @@ class Grid
     /// <seealso cref="Rule.Load(XElement, Grid, Grid)"/>
     public string folder;
 
+    /// <summary>Provides in-memory resources (patterns, samples, vox data) to legacy nodes.</summary>
+    public IResourceStore resources;
+
     readonly CharacterSymbolTable palette;
 
     /// <summary>A bitmask of which colors should be rendered transparently.</summary>
@@ -57,6 +61,7 @@ class Grid
     /// <remarks>Not currently used.</remarks>
     byte[] statebuffer;
 
+    public Grid(int MX, int MY, int MZ, CharacterSymbolTable palette, string? folder, IResourceStore? resources)
     public Grid(int MX, int MY, int MZ, CharacterSymbolTable palette, string? folder)
     {
         this.MX = MX;
@@ -70,6 +75,7 @@ class Grid
         waves['*'] = palette.AllMask;
         transparent = palette.TransparentMask;
         this.folder = folder;
+        this.resources = resources;
 
         state = new byte[MX * MY * MZ];
         statebuffer = new byte[MX * MY * MZ];
@@ -85,7 +91,7 @@ class Grid
     /// <param name="MX"><inheritdoc cref="Grid.MX" path="/summary"/></param>
     /// <param name="MY"><inheritdoc cref="Grid.MY" path="/summary"/></param>
     /// <param name="MZ"><inheritdoc cref="Grid.MZ" path="/summary"/></param>
-    public static Grid Load(XElement xelem, int MX, int MY, int MZ)
+    public static Grid Load(XElement xelem, int MX, int MY, int MZ, IResourceStore? resources = null)
     {
         try
         {
@@ -104,6 +110,7 @@ class Grid
                 palette.DefineTransparent(definition.TransparentSymbols);
             }
 
+            return new Grid(MX, MY, MZ, palette, definition.ResourceFolder, resources);
             return new Grid(MX, MY, MZ, palette, definition.ResourceFolder);
         }
         catch (Exception e)

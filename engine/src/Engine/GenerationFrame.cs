@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace MarkovJunior.Engine;
 
@@ -64,5 +65,97 @@ public readonly struct GenerationFrame
         if (legendMap is null) throw new ArgumentNullException(nameof(legendMap));
 
         return ToTyped(symbol => legendMap[symbol]);
+    }
+
+    /// <summary>
+    /// Materialises the frame as a flattened character array in XYZ order.
+    /// </summary>
+    public char[] ToCharArray()
+    {
+        var buffer = new char[State.Length];
+        for (int i = 0; i < State.Length; i++)
+        {
+            buffer[i] = Legend[State[i]];
+        }
+
+        return buffer;
+    }
+
+    /// <summary>
+    /// Materialises the frame as a 2D character grid [y, x].
+    /// </summary>
+    public char[,] ToCharGrid2D()
+    {
+        if (Depth != 1)
+        {
+            throw new InvalidOperationException("ToCharGrid2D is only supported for 2D grids.");
+        }
+
+        var grid = new char[Height, Width];
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                int index = x + y * Width;
+                grid[y, x] = Legend[State[index]];
+            }
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Materialises the frame as a 3D character grid [z, y, x].
+    /// </summary>
+    public char[,,] ToCharGrid3D()
+    {
+        if (Depth <= 1)
+        {
+            throw new InvalidOperationException("ToCharGrid3D requires a depth greater than 1.");
+        }
+
+        var grid = new char[Depth, Height, Width];
+        int slice = Width * Height;
+        for (int z = 0; z < Depth; z++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    int index = x + y * Width + z * slice;
+                    grid[z, y, x] = Legend[State[index]];
+                }
+            }
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Converts the frame into a collection of strings representing each row.
+    /// Only valid for 2D grids.
+    /// </summary>
+    public IReadOnlyList<string> AsStrings()
+    {
+        if (Depth != 1)
+        {
+            throw new InvalidOperationException("AsStrings is only supported for 2D grids.");
+        }
+
+        var rows = new string[Height];
+        for (int y = 0; y < Height; y++)
+        {
+            var row = new char[Width];
+            for (int x = 0; x < Width; x++)
+            {
+                int index = x + y * Width;
+                byte paletteIndex = State[index];
+                row[x] = Legend[paletteIndex];
+            }
+
+            rows[y] = new string(row);
+        }
+
+        return Array.AsReadOnly(rows);
     }
 }
