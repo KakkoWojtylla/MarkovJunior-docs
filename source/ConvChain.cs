@@ -2,6 +2,7 @@
 
 using System;
 using System.Xml.Linq;
+using MarkovJunior.Engine.Api;
 
 /// <summary>
 /// <para>
@@ -78,18 +79,27 @@ class ConvChainNode : Node
 
         string name = xelem.Get<string>("sample");
         string filename = $"resources/samples/{name}.png";
-        int[] bitmap;
-        (bitmap, SMX, SMY, _) = Graphics.LoadBitmap(filename);
-        if (bitmap == null)
+        if (grid.resources != null && grid.resources.TryGetConvChainSample(name, out ConvChainSampleResource resource))
         {
-            Interpreter.WriteLine($"couldn't load ConvChain sample {filename}");
-            return false;
+            sample = (bool[])resource.Data.Clone();
+            SMX = resource.Width;
+            SMY = resource.Height;
         }
-        sample = new bool[bitmap.Length];
-        for (int i = 0; i < sample.Length; i++)
+        else
         {
-            // -1 is 0xffffffff, i.e. white with alpha = 1
-            sample[i] = bitmap[i] == -1;
+            int[] bitmap;
+            (bitmap, SMX, SMY, _) = Graphics.LoadBitmap(filename);
+            if (bitmap == null)
+            {
+                Interpreter.WriteLine($"couldn't load ConvChain sample {filename}");
+                return false;
+            }
+            sample = new bool[bitmap.Length];
+            for (int i = 0; i < sample.Length; i++)
+            {
+                // -1 is 0xffffffff, i.e. white with alpha = 1
+                sample[i] = bitmap[i] == -1;
+            }
         }
 
         N = xelem.Get("n", 3);
