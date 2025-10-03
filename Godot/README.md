@@ -13,20 +13,57 @@ This addon provides a code-first, in-memory procedural generation toolkit for Go
 extends Node
 
 func _ready() -> void:
-    var tileset := MarkovJunior.create_tileset([".", "#", "S", "E"])
-    tileset.set_weight("#", 2.0)
+    var tileset := MarkovJunior.create_tileset([".", "#", "S", "E", "T"])
     tileset.add_adjacency(".", ".")
     tileset.add_adjacency(".", "#")
     tileset.add_adjacency("#", "#")
     tileset.add_adjacency("S", ".", "east")
     tileset.add_adjacency("E", ".", "west")
 
-    var chain := MarkovJunior.rule_chain([
+    var carve := MarkovJunior.rule([
+        "???",
+        "?#?",
+        "???"
+    ], [
+        "...",
+        ".#.",
+        "..."
+    ])
+
+    var treasures := MarkovJunior.rule([
+        "...",
+        "...",
+        "..."
+    ], [
+        "...",
+        ".T.",
+        "..."
+    ], weight = 0.5)
+
+    var rules := MarkovJunior.sequence_stage([
         MarkovJunior.fill_stage("?", "prepare"),
         MarkovJunior.scatter_stage("S", 1, [], "spawn"),
         MarkovJunior.scatter_stage("E", 1, [], "exit"),
-        MarkovJunior.wfc_stage(tileset, "rooms", backtrack_limit = 256)
-    ])
+        MarkovJunior.one_stage([treasures], "seed"),
+        MarkovJunior.all_stage([carve], "carve", steps = 3),
+        MarkovJunior.path_stage(["S"], ["E"], "T", "path").set_passable([".", "T"]).set_keep_endpoints(true),
+        MarkovJunior.wfc_stage(tileset, "rooms", backtrack_limit = 256),
+        MarkovJunior.convolution_stage([
+            MarkovJunior.convolution_rule("#", ".", ["."], [0, 1, 4, 5, 6, 7, 8]),
+            MarkovJunior.convolution_rule(".", "#", ["#"], [5, 6, 7, 8])
+        ], "erosion", neighborhood = "moore")
+    ], "pipeline")
+
+    var post := MarkovJunior.markov_stage([
+        MarkovJunior.conv_chain_stage([
+            "....",
+            ".##.",
+            ".##.",
+            "...."
+        ], "texture", window = 2, steps = 64)
+    ], "polish", max_iterations = 2)
+
+    var chain := MarkovJunior.rule_chain([rules, post])
 
     var runner := MarkovJunior.runner()
     var options := MJGenerationRunner.Options.new()
@@ -62,8 +99,47 @@ chain.add_stage(MarkovJunior.stamp_stage([
     "#####"
 ], Vector2i(4, 4), overwrite = false))
 chain.add_stage(MarkovJunior.scatter_stage("T", 6, ["."], "treasure"))
+chain.add_stage(MarkovJunior.parallel_stage([
+    MarkovJunior.rule([
+        "..",
+        ".."
+    ], [
+        "##",
+        "##"
+    ], probability = 0.1)
+], "moss", iterations = 4))
+chain.add_stage(MarkovJunior.map_stage([
+    MarkovJunior.rule([
+        "#"
+    ], [
+        "?"
+    ])
+], "remap", fill_symbol = "?").add_child(MarkovJunior.conv_chain_stage([
+    "?##",
+    "#??",
+    "?##"
+], "detail", window = 2, steps = 16)))
 chain.add_stage(MarkovJunior.wfc_stage(tileset, "polish", backtrack_limit = 512))
 ```
+
+### Rule-driven stages
+
+- `MarkovJunior.rule` defines rewrite rules used by `all_stage`, `one_stage`, and `parallel_stage`.
+- `all_stage` applies a maximal set of non-overlapping matches per iteration.
+- `one_stage` selects a single weighted match, retrying when desired.
+- `parallel_stage` evaluates every match with per-rule probabilities.
+
+### Structural stages
+
+- `sequence_stage` and `markov_stage` let you build nested flows, mirroring the classic `sequence` and `markov` nodes.
+- `map_stage` rewrites the whole canvas into a fresh grid before running optional child stages.
+- `path_stage` finds a route between markers with BFS and draws it using your chosen symbol.
+
+### Sampling stages
+
+- `convolution_stage` performs Life-like neighbourhood filtering with configurable kernels.
+- `conv_chain_stage` stamps overlapping patches from a sample texture for quick tiling noise.
+- `wfc_stage` wraps the tile-based Wave Function Collapse solver from the tileset helpers.
 
 ## Runner options and sessions
 

@@ -13,7 +13,8 @@ func _init(p_pattern: PackedStringArray, p_position: Vector2i = Vector2i.ZERO, p
     ignore_symbol = p_ignore
     super._init(p_name)
 
-func apply(canvas: MJCanvas, context: StageContext) -> void:
+func apply(canvas: MJCanvas, context: StageContext) -> bool:
+    var changed := false
     for y in pattern.size():
         var row := pattern[y]
         for x in row.length():
@@ -23,5 +24,9 @@ func apply(canvas: MJCanvas, context: StageContext) -> void:
             var cx := position.x + x
             var cy := position.y + y
             if overwrite or canvas.get_cell(cx, cy) == ignore_symbol:
-                canvas.set_cell(cx, cy, symbol)
-    context.snapshot(canvas, name)
+                if canvas.get_cell(cx, cy) != symbol:
+                    canvas.set_cell(cx, cy, symbol)
+                    changed = true
+    if changed:
+        context.snapshot(canvas, name)
+    return changed

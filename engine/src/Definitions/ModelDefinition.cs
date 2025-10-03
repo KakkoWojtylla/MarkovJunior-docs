@@ -20,7 +20,6 @@ public class ModelDefinition<TSymbol>
         string? symmetry = null,
         bool origin = false,
         IResourceStore? resources = null)
-        bool origin = false)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -67,8 +66,6 @@ public sealed class ModelDefinition : ModelDefinition<char>
         bool origin = false,
         IResourceStore? resources = null)
         : base(name, grid, rootNode, execution, paletteOverrides, symmetry, origin, resources)
-        bool origin = false)
-        : base(name, grid, rootNode, execution, paletteOverrides, symmetry, origin)
     {
     }
 }

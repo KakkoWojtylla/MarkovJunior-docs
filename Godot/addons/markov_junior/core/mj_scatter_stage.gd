@@ -11,7 +11,7 @@ func _init(p_symbol: String, p_count: int, p_allowed: Array = [], p_name: String
     allowed = p_allowed.duplicate() if p_allowed != null else []
     super._init(p_name)
 
-func apply(canvas: MJCanvas, context: StageContext) -> void:
+func apply(canvas: MJCanvas, context: StageContext) -> bool:
     var placed := 0
     var attempts := 0
     var max_attempts := count * 10 + 100
@@ -22,6 +22,9 @@ func apply(canvas: MJCanvas, context: StageContext) -> void:
         var current := canvas.get_cell(x, y)
         if allowed.size() > 0 and not allowed.has(current):
             continue
-        canvas.set_cell(x, y, symbol)
-        placed += 1
-    context.snapshot(canvas, name)
+        if current != symbol:
+            canvas.set_cell(x, y, symbol)
+            placed += 1
+    if placed > 0:
+        context.snapshot(canvas, name)
+    return placed > 0

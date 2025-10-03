@@ -62,7 +62,6 @@ class Grid
     byte[] statebuffer;
 
     public Grid(int MX, int MY, int MZ, CharacterSymbolTable palette, string? folder, IResourceStore? resources)
-    public Grid(int MX, int MY, int MZ, CharacterSymbolTable palette, string? folder)
     {
         this.MX = MX;
         this.MY = MY;
@@ -111,7 +110,6 @@ class Grid
             }
 
             return new Grid(MX, MY, MZ, palette, definition.ResourceFolder, resources);
-            return new Grid(MX, MY, MZ, palette, definition.ResourceFolder);
         }
         catch (Exception e)
         {

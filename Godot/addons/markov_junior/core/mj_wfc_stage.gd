@@ -13,13 +13,15 @@ func _init(p_tile_set: MJTileSet, p_name: String = "wfc", p_backtrack_limit: int
     wildcard = p_wildcard
     super._init(p_name)
 
-func apply(canvas: MJCanvas, context: StageContext) -> void:
+func apply(canvas: MJCanvas, context: StageContext) -> bool:
     var solver := _build_solver(canvas, context)
     var ok := solver.solve()
     if not ok:
         push_warning("WFC stage %s failed after exhausting backtracking" % name)
-    solver.commit(canvas)
-    context.snapshot(canvas, name)
+    var changed := solver.commit(canvas)
+    if changed:
+        context.snapshot(canvas, name)
+    return changed
 
 class WFCSolver:
     var tile_set: MJTileSet
@@ -59,15 +61,6 @@ class WFCSolver:
             var pos: Vector2i = target
             var x: int = pos.x
             var y: int = pos.y
-        while true:
-            if steps > backtrack_limit:
-                return false
-            steps += 1
-            var target := _lowest_entropy_cell()
-            if target == null:
-                return true
-            var x: int = target.x
-            var y: int = target.y
             var options: PackedInt32Array = possibilities[y][x]
             if options.size() == 0:
                 if not _rewind(stack):
@@ -92,20 +85,22 @@ class WFCSolver:
             steps += 1
         return false
 
-    func commit(canvas: MJCanvas) -> void:
+    func commit(canvas: MJCanvas) -> bool:
+        var changed := false
         for y in height:
             for x in width:
                 var options: PackedInt32Array = possibilities[y][x]
                 if options.size() == 0:
                     continue
-                canvas.set_cell(x, y, tile_set.get_symbol(options[0]))
+                var symbol := tile_set.get_symbol(options[0])
+                if canvas.get_cell(x, y) != symbol:
+                    canvas.set_cell(x, y, symbol)
+                    changed = true
+        return changed
 
     func _lowest_entropy_cell() -> Variant:
         var best_entropy := INF
         var best: Variant = null
-    func _lowest_entropy_cell() -> Vector2i:
-        var best_entropy := INF
-        var best := null
         for y in height:
             for x in width:
                 var options: PackedInt32Array = possibilities[y][x]
